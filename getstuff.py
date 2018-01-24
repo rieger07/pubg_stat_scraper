@@ -147,21 +147,94 @@ def getData():
 def getDistances(name):
     
     temp = SESSION.query(Match.date, Match.user_name, Match.ride_distance, Match.walk_distance).filter(Match.user_name==name).order_by(Match.date.desc()).all()
-    df = pd.DataFrame(temp)
-    df.plot.hist(alpha=.5, title="{} Travel Samples".format(name))
+    df = pd.DataFrame(temp).set_index('date')
+    ax = df.plot.hist(alpha=.5, title="{} Travel Samples".format(name), stacked=True)
+    ax.set_xlabel('Distance (m)')
     
+    df.plot.box()
+
+def getWalkBoxPlot():
+    df = pd.DataFrame()
+    for u in SESSION.query(User).all():
+        temp = SESSION.query(Match.date, Match.walk_distance).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
+        temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
+        df = pd.concat([df, temp_df])
+    ax = df.plot.box()
+    ax.set_ylabel('Distance Walked (m)')
+    
+def getDriveBoxPlot():
+    df = pd.DataFrame()
+    for u in SESSION.query(User).all():
+        temp = SESSION.query(Match.date, Match.ride_distance).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
+        temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
+        df = pd.concat([df, temp_df])
+    ax = df.plot.box()
+    ax.set_ylabel('Distance Driven (m)')
+    
+def getTravelBoxPlot():
+    df = pd.DataFrame()
+    for u in SESSION.query(User).all():
+        temp = SESSION.query(Match.date, Match.distance_traveled).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
+        temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
+        df = pd.concat([df, temp_df])
+    ax = df.plot.box()
+    ax.set_ylabel('Total Distance Traveled (m)')
+
+def getDamageStats():
+    df = pd.DataFrame()
+    for u in SESSION.query(User).all():
+        temp = SESSION.query(Match.date, Match.damage).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
+        temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
+        df = pd.concat([df, temp_df])
+    ax = df.plot.box()
+    ax.set_ylabel('Damage')
+    
+def getHeadShotStats():
+    df = pd.DataFrame()
+    for u in SESSION.query(User).all():
+        temp = SESSION.query(Match.date, Match.user_name, Match.headshot_kills).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
+        temp_df = pd.DataFrame(temp,columns=['date','name','headshots']).set_index('date')
+        df = pd.concat([df, temp_df])
+    _max = df['headshots'].max()
+    df.hist(by=df['name'], bins=range(1,_max+1), sharey=True)
+
+def getKillsStats():
+    df = pd.DataFrame()
+    for u in SESSION.query(User).all():
+        temp = SESSION.query(Match.date, Match.kills).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
+        temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
+        df = pd.concat([df, temp_df])
+    ax = df.plot.box()
+    ax.set_ylabel('Kills')
+    
+def getVehicleDestroys():
+    for u in SESSION.query(User).all():
+        df = pd.DataFrame()
+        for rank in SESSION.query(Match.rank).filter(Match.user_name==u.name).all():
+            rank = rank[0]
+            temp = SESSION.query(Match.date, Match.vehicle_destroys).filter(Match.user_name==u.name).filter(Match.rank==rank).order_by(Match.date.desc()).all()
+            temp_df = pd.DataFrame(temp, columns=['date', rank]).set_index('date')
+            df = pd.concat([df, temp_df])
+        ax = df.plot.bar()
+        ax.set_title("{} Vehicle Destruction".format(u.name))
+        ax.set_ylabel('Destroys')
 
 def extractStuff():
     for u in SESSION.query(User).all():
         print(u.name)
         print("\t{} Matches Played".format(len(u.matches)))
         getDistances(u.name)
-    
 
 def main():
     #getData()
-    extractStuff()
+    #extractStuff()
+    #getWalkBoxPlot()
+    #getDriveBoxPlot()
+    #getTravelBoxPlot()
+    #getDamageStats()
+    #getHeadShotStats()
+    #getKillsStats()
+    getVehicleDestroys()
     
-            
 if __name__ == "__main__":
     main()
