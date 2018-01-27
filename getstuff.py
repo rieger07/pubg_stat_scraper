@@ -12,7 +12,7 @@ IDS = {
        "JC":"59fe35497c5c290001ac139c",
        "Justin":"59fe35868ad76f0001dd4daa"
        }
-LATEST_URL = "https://pubg.op.gg/api/users/{}/matches/recent?server=na&queue_size=4&mode=fpp"
+LATEST_URL = "https://pubg.op.gg/api/users/{}/matches/recent?server=na&queue_size={}&mode=fpp"
 NEXT_TOKEN = "&after={}" # multiples of "20" (0-19) e.g. &after=19
 PARAMS = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0",
@@ -125,21 +125,22 @@ def getData():
         except Exception as e:
             print("{} already in users!".format(n))
         print("Adding {} to database".format(n))
-        for p in range(0, N_PAGES):
-            url = LATEST_URL.format(_id)
-            if p > 0:
-                url += NEXT_TOKEN.format(20*p-1)
-            
-            r = requests.get(url,params=PARAMS)
-            j = r.json()
-            matches = j['matches']['items']
-            if len(matches) > 0:
-                for m in matches:
-                    fillOutMatch(m, n, _id)
-                    
-            else:
-                # If there were no matches we've gone too far
-                break
+        for queue in range(1,5):
+            for p in range(0, N_PAGES):
+                url = LATEST_URL.format(_id,queue)
+                if p > 0:
+                    url += NEXT_TOKEN.format(20*p-1)
+                
+                r = requests.get(url,params=PARAMS)
+                j = r.json()
+                matches = j['matches']['items']
+                if len(matches) > 0:
+                    for m in matches:
+                        fillOutMatch(m, n, _id)
+                        
+                else:
+                    # If there were no matches we've gone too far
+                    break
         
     SESSION.commit()
     SESSION.close()
@@ -159,7 +160,7 @@ def extractStuff():
     
 
 def main():
-    #getData()
+    getData()
     extractStuff()
     
             
