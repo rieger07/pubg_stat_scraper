@@ -33,14 +33,25 @@ PARAMS = {
 GET_OLD = 1
 N_PAGES = 100 #Assuming that there are at least 200 matches here, might be 404
 
-
+import os
+import argparse as ap
 import requests
-from model import User, Match, SESSION
+from model import User, Match, Base
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+#import plotly
+#plotly.offline.init_notebook_mode()
+#import plotly.offline as offline
+import plotly.plotly as py
+import plotly.graph_objs as go
+import plotly.figure_factory as ff
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
-
+py.sign_in("rieger07","il7Yxcu5OnyMBMQl6SFS")
+global SESSION;
 
 def fillOutUser(id, name):
     if not SESSION.query(User).filter(User.name==name).filter(User.id==id).all():
@@ -127,21 +138,23 @@ def getData():
         print("Adding {} to database".format(n))
         for queue in range(1,5):
             for p in range(0, N_PAGES):
-                url = LATEST_URL.format(_id,queue)
-                if p > 0:
-                    url += NEXT_TOKEN.format(20*p-1)
-                
-                r = requests.get(url,params=PARAMS)
-                j = r.json()
-                matches = j['matches']['items']
-                if len(matches) > 0:
-                    for m in matches:
-                        fillOutMatch(m, n, _id)
-                        
-                else:
-                    # If there were no matches we've gone too far
+                try:
+                    url = LATEST_URL.format(_id,queue)
+                    if p > 0:
+                        url += NEXT_TOKEN.format(20*p-1)
+                    
+                    r = requests.get(url,params=PARAMS)
+                    j = r.json()
+                    matches = j['matches']['items']
+                    if len(matches) > 0:
+                        for m in matches:
+                            fillOutMatch(m, n, _id)
+                            
+                    else:
+                        # If there were no matches we've gone too far
+                        break
+                except Exception as e:
                     break
-        
     SESSION.commit()
     SESSION.close()
 
@@ -226,16 +239,58 @@ def extractStuff():
         print("\t{} Matches Played".format(len(u.matches)))
         getDistances(u.name)
 
+def makeTable():
+    q = SESSION.query(Match.date, Match.user_name, Match.rank, Match.kills).limit(10)
+    results = []
+    for r in q:
+        results.append(r)
+    df = pd.DataFrame(results, columns=['Date','Name','Rank','Kills'])
+    table = ff.create_table(df)
+    py.image.save_as(table, filename='table.png')
+
+def getConnection(path=os.path.join(os.getcwd(),'pubg.sql')):
+    ENGINE = create_engine(r"sqlite:///{}".format(path))
+    S = sessionmaker(bind=ENGINE)
+    Base.metadata.create_all(ENGINE)
+    SESSION = S()
+
+def parseArgs(inargs=None):
+    pimp = ap.ArgumentParser()
+    pimp.add_argument("command")
+    pimp.add_argument("--path","-p", default=os.path.join(os.getcwd(),'pubg.sql'))
+    return pimp.parse_known_args(inargs)
+
+
 def main():
-    #getData()
-    #extractStuff()
-    #getWalkBoxPlot()
-    #getDriveBoxPlot()
-    #getTravelBoxPlot()
-    #getDamageStats()
-    #getHeadShotStats()
-    #getKillsStats()
-    getVehicleDestroys()
+    args, unk = parseArgs(["getdata"])
+    command = args.command.lower();
+    getConnection(args.path)
+    
+    if command=='getdata':
+        try:
+            getData()
+            print("Updated the Database!")
+        except Exception as e:
+            SESSION.rollback()
+            print("Rolled the database back")
+    elif command=='extractstuff':
+        extractStuff()
+    elif command=='getWalkBoxPlot'.lower():
+        getWalkBoxPlot()
+    elif command=='getDriveBoxPlot'.lower():
+        getDriveBoxPlot()
+    elif command=='getTravelBoxPlot'.lower():
+        getTravelBoxPlot()
+    elif command=='getDamageStats'.lower():
+        getDamageStats()
+    elif command=='getHeadShotStats'.lower():
+        getHeadShotStats()
+    elif command=='getKillsStats'.lower():
+        getKillsStats()
+    elif command=='makeTable'.lower():
+        makeTable()
+    else:
+        print("invalid command {}".format(command))
     
 if __name__ == "__main__":
     main()

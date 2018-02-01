@@ -8,9 +8,6 @@ import os
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import String, DateTime, Column, Integer, Float, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 
 Base = declarative_base()
 
@@ -66,10 +63,3 @@ class Match(Base):
     def __repr__(self):
         return "<Match(match_id={}, date={}, user_id={}, user_name={}, mode={})>".format(self.id, self.date, self.user_id, self.user_name, self.mode)
 
-sqlite_file = os.path.join(os.getcwd(),'pubg.sql')
-ENGINE = create_engine(r"sqlite:///{}".format(sqlite_file))
-
-S = sessionmaker(bind=ENGINE)
-SESSION = S()
-
-Base.metadata.create_all(ENGINE)
