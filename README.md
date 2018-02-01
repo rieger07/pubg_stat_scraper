@@ -1,7 +1,7 @@
 # pubg_stat_scraper
 does good shit with python via pandas, requests, and sqlalchemy
 
-#Setup
+# Setup 
 run:
 ```bash
 sudo apt-get install python3 python3-tk python3-pip
