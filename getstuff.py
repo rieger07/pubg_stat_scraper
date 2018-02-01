@@ -49,8 +49,12 @@ import plotly.graph_objs as go
 import plotly.figure_factory as ff
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import inspect
 
 py.sign_in("rieger07","il7Yxcu5OnyMBMQl6SFS")
+
+def my_print(*args, **kwargs):
+    print(args,flush=True)
 
 def fillOutUser(SESSION, id, name):
     if not SESSION.query(User).filter(User.name==name).filter(User.id==id).all():
@@ -133,8 +137,8 @@ def getData(SESSION):
         try:
             fillOutUser(SESSION, _id, n)
         except Exception as e:
-            print("{} already in users!".format(n))
-        print("Adding {} to database".format(n))
+            my_print("{} already in users!".format(n))
+        my_print("Adding {} to database".format(n))
         for queue in range(1,5):
             for p in range(0, N_PAGES):
                 try:
@@ -162,8 +166,7 @@ def getDistances(SESSION, name):
     temp = SESSION.query(Match.date, Match.user_name, Match.ride_distance, Match.walk_distance).filter(Match.user_name==name).order_by(Match.date.desc()).all()
     df = pd.DataFrame(temp).set_index('date')
     ax = df.plot.hist(alpha=.5, title="{} Travel Samples".format(name), stacked=True)
-    ax.set_xlabel('Distance (m)')
-    
+    ax.set_xlabel('Distance (m)')    
     df.plot.box()
 
 def getWalkBoxPlot(SESSION):
@@ -174,6 +177,9 @@ def getWalkBoxPlot(SESSION):
         df = pd.concat([df, temp_df])
     ax = df.plot.box()
     ax.set_ylabel('Distance Walked (m)')
+    fname = os.path.realpath('walk.png')
+    plt.savefig(fname)
+    my_print(fname)
     
 def getDriveBoxPlot(SESSION) :
     df = pd.DataFrame()
@@ -234,18 +240,22 @@ def getVehicleDestroys(SESSION):
 
 def extractStuff(SESSION):
     for u in SESSION.query(User).all():
-        print(u.name)
-        print("\t{} Matches Played".format(len(u.matches)))
+        my_print(u.name)
+        my_print("\t{} Matches Played".format(len(u.matches)))
         getDistances(u.name)
 
-def makeTable(SESSION):
-    q = SESSION.query(Match.date, Match.user_name, Match.rank, Match.kills).limit(10)
+def makeTable(SESSION, user, columns=("date", "name", "rank", "kills"), limit=10):
+    _cols = [getattr(Match,col) for col in columns]
+    q = SESSION.query(*_cols).filter(Match.user_name.like(user)).order_by(Match.date.desc()).limit(limit)
     results = []
     for r in q:
         results.append(r)
-    df = pd.DataFrame(results, columns=['Date','Name','Rank','Kills'])
+    
+    df = pd.DataFrame(results, columns=columns)
     table = ff.create_table(df)
-    py.image.save_as(table, filename='table.png')
+    file_path = os.path.realpath('table.png')
+    py.image.save_as(table, filename=file_path)
+    my_print(file_path)
 
 def getConnection(path=os.path.join(os.getcwd(),'pubg.sql')):
     ENGINE = create_engine(r"sqlite:///{}".format(path))
@@ -255,9 +265,13 @@ def getConnection(path=os.path.join(os.getcwd(),'pubg.sql')):
     return SESSION
 
 def parseArgs(inargs=None):
+    columns = [m.key for m in Match.__table__.columns]
     pimp = ap.ArgumentParser()
-    pimp.add_argument("command")
-    pimp.add_argument("--path","-p", default=os.path.join(os.getcwd(),'pubg.sql'))
+    pimp.add_argument("command", help="The command you want to run, ex: getData")
+    pimp.add_argument("--path","-p", default=os.path.join(os.getcwd(),'pubg.sql'), help="The path to the database file")
+    pimp.add_argument("--user","-u", default="Steve", help="The username for your query")
+    pimp.add_argument("--columns",nargs="+", choices=columns, default=("date", "user_name", "rank", "kills"),help="The columns you want in the query")
+    pimp.add_argument("--limit", default=10, help="The max number of rows you want returned")
     return pimp.parse_known_args(inargs)
 
 
@@ -269,11 +283,11 @@ def main():
     if command=='getdata':
         try:
             getData(SESSION)
-            print("Updated the Database!")
+            my_print("Updated the Database!")
         except Exception as e:
             SESSION.rollback()
-            print(e)
-            print("Rolled the database back")
+            my_print(e)
+            my_print("Rolled the database back")
     elif command=='extractstuff':
         extractStuff(SESSION)
     elif command=='getWalkBoxPlot'.lower():
@@ -289,9 +303,9 @@ def main():
     elif command=='getKillsStats'.lower():
         getKillsStats(SESSION)
     elif command=='makeTable'.lower():
-        makeTable(SESSION)
+        makeTable(SESSION, args.user, args.columns, args.limit)
     else:
-        print("invalid command {}".format(command))
+        my_print("invalid command {}".format(command))
     
 if __name__ == "__main__":
     main()
