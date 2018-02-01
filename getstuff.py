@@ -51,16 +51,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 py.sign_in("rieger07","il7Yxcu5OnyMBMQl6SFS")
-global SESSION;
 
-def fillOutUser(id, name):
+def fillOutUser(SESSION, id, name):
     if not SESSION.query(User).filter(User.name==name).filter(User.id==id).all():
         u = User()
         u.id = id
         u.name = name
         SESSION.add(u)
 
-def fillOutMatch(match,name,id):
+def fillOutMatch(SESSION, match,name,id):
     user = SESSION.query(User).filter(User.id==id).filter(User.name==name).one()
     
     d =  datetime.strptime(match['started_at'], "%Y-%m-%dT%H:%M:%S%z" )
@@ -129,10 +128,10 @@ def fillOutMatch(match,name,id):
     
     SESSION.add(m)
 
-def getData():
+def getData(SESSION):
     for n, _id in IDS.items():
         try:
-            fillOutUser(_id, n)
+            fillOutUser(SESSION, _id, n)
         except Exception as e:
             print("{} already in users!".format(n))
         print("Adding {} to database".format(n))
@@ -148,17 +147,17 @@ def getData():
                     matches = j['matches']['items']
                     if len(matches) > 0:
                         for m in matches:
-                            fillOutMatch(m, n, _id)
+                            fillOutMatch(SESSION, m, n, _id)
                             
                     else:
                         # If there were no matches we've gone too far
                         break
                 except Exception as e:
-                    break
+                    continue
     SESSION.commit()
     SESSION.close()
 
-def getDistances(name):
+def getDistances(SESSION, name):
     
     temp = SESSION.query(Match.date, Match.user_name, Match.ride_distance, Match.walk_distance).filter(Match.user_name==name).order_by(Match.date.desc()).all()
     df = pd.DataFrame(temp).set_index('date')
@@ -167,7 +166,7 @@ def getDistances(name):
     
     df.plot.box()
 
-def getWalkBoxPlot():
+def getWalkBoxPlot(SESSION):
     df = pd.DataFrame()
     for u in SESSION.query(User).all():
         temp = SESSION.query(Match.date, Match.walk_distance).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
@@ -176,7 +175,7 @@ def getWalkBoxPlot():
     ax = df.plot.box()
     ax.set_ylabel('Distance Walked (m)')
     
-def getDriveBoxPlot():
+def getDriveBoxPlot(SESSION) :
     df = pd.DataFrame()
     for u in SESSION.query(User).all():
         temp = SESSION.query(Match.date, Match.ride_distance).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
@@ -185,7 +184,7 @@ def getDriveBoxPlot():
     ax = df.plot.box()
     ax.set_ylabel('Distance Driven (m)')
     
-def getTravelBoxPlot():
+def getTravelBoxPlot(SESSION):
     df = pd.DataFrame()
     for u in SESSION.query(User).all():
         temp = SESSION.query(Match.date, Match.distance_traveled).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
@@ -194,7 +193,7 @@ def getTravelBoxPlot():
     ax = df.plot.box()
     ax.set_ylabel('Total Distance Traveled (m)')
 
-def getDamageStats():
+def getDamageStats(SESSION):
     df = pd.DataFrame()
     for u in SESSION.query(User).all():
         temp = SESSION.query(Match.date, Match.damage).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
@@ -203,7 +202,7 @@ def getDamageStats():
     ax = df.plot.box()
     ax.set_ylabel('Damage')
     
-def getHeadShotStats():
+def getHeadShotStats(SESSION):
     df = pd.DataFrame()
     for u in SESSION.query(User).all():
         temp = SESSION.query(Match.date, Match.user_name, Match.headshot_kills).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
@@ -212,7 +211,7 @@ def getHeadShotStats():
     _max = df['headshots'].max()
     df.hist(by=df['name'], bins=range(1,_max+1), sharey=True)
 
-def getKillsStats():
+def getKillsStats(SESSION):
     df = pd.DataFrame()
     for u in SESSION.query(User).all():
         temp = SESSION.query(Match.date, Match.kills).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
@@ -221,7 +220,7 @@ def getKillsStats():
     ax = df.plot.box()
     ax.set_ylabel('Kills')
     
-def getVehicleDestroys():
+def getVehicleDestroys(SESSION):
     for u in SESSION.query(User).all():
         df = pd.DataFrame()
         for rank in SESSION.query(Match.rank).filter(Match.user_name==u.name).all():
@@ -233,13 +232,13 @@ def getVehicleDestroys():
         ax.set_title("{} Vehicle Destruction".format(u.name))
         ax.set_ylabel('Destroys')
 
-def extractStuff():
+def extractStuff(SESSION):
     for u in SESSION.query(User).all():
         print(u.name)
         print("\t{} Matches Played".format(len(u.matches)))
         getDistances(u.name)
 
-def makeTable():
+def makeTable(SESSION):
     q = SESSION.query(Match.date, Match.user_name, Match.rank, Match.kills).limit(10)
     results = []
     for r in q:
@@ -253,6 +252,7 @@ def getConnection(path=os.path.join(os.getcwd(),'pubg.sql')):
     S = sessionmaker(bind=ENGINE)
     Base.metadata.create_all(ENGINE)
     SESSION = S()
+    return SESSION
 
 def parseArgs(inargs=None):
     pimp = ap.ArgumentParser()
@@ -262,33 +262,34 @@ def parseArgs(inargs=None):
 
 
 def main():
-    args, unk = parseArgs(["getdata"])
+    args, unk = parseArgs()
     command = args.command.lower();
-    getConnection(args.path)
+    SESSION=getConnection(args.path)
     
     if command=='getdata':
         try:
-            getData()
+            getData(SESSION)
             print("Updated the Database!")
         except Exception as e:
             SESSION.rollback()
+            print(e)
             print("Rolled the database back")
     elif command=='extractstuff':
-        extractStuff()
+        extractStuff(SESSION)
     elif command=='getWalkBoxPlot'.lower():
-        getWalkBoxPlot()
+        getWalkBoxPlot(SESSION)
     elif command=='getDriveBoxPlot'.lower():
-        getDriveBoxPlot()
+        getDriveBoxPlot(SESSION)
     elif command=='getTravelBoxPlot'.lower():
-        getTravelBoxPlot()
+        getTravelBoxPlot(SESSION)
     elif command=='getDamageStats'.lower():
-        getDamageStats()
+        getDamageStats(SESSION)
     elif command=='getHeadShotStats'.lower():
-        getHeadShotStats()
+        getHeadShotStats(SESSION)
     elif command=='getKillsStats'.lower():
-        getKillsStats()
+        getKillsStats(SESSION)
     elif command=='makeTable'.lower():
-        makeTable()
+        makeTable(SESSION)
     else:
         print("invalid command {}".format(command))
     
