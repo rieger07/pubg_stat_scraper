@@ -6,7 +6,8 @@ IDS = {
        "Chris":"59fe3c5e2eaf9c0001b18eea",
        "John":"59fe357e2506cb00017d24de",
        "JC":"59fe35497c5c290001ac139c",
-       "Justin":"59fe35868ad76f0001dd4daa"
+       "Justin":"59fe35868ad76f0001dd4daa",
+       "Tommy":"59fe357e3670f6000183f7fc"
        }
 LATEST_URL = "https://pubg.op.gg/api/users/{}/matches/recent?server=na&queue_size=&mode=fpp"
 NEXT_TOKEN = "&after={}" # multiples of "20" (0-19) e.g. &after=19
