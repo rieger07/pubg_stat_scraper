@@ -35,7 +35,10 @@ from sqlalchemy import inspect
 from data import getData
 import pickle
 from utils import my_print
-with open("config.pkl", "rb") as f:
+
+pkl = os.path.realpath(os.path.join(__file__,"..","config.pkl"))
+
+with open(pkl, "rb") as f:
     cfg = pickle.load(f)
     
 py.sign_in(cfg["user"],cfg["key"])
