@@ -22,7 +22,7 @@ Created on Tue Jan 23 21:55:20 2018
 import os
 import argparse as ap
 from model import User, Match, Base
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,11 +44,12 @@ with open(pkl, "rb") as f:
 py.sign_in(cfg["user"],cfg["key"])
 
 
-
 def getDistances(SESSION, name):
-    
     temp = SESSION.query(Match.date, Match.user_name, Match.ride_distance, Match.walk_distance).filter(Match.user_name==name).order_by(Match.date.desc()).all()
     df = pd.DataFrame(temp).set_index('date')
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.hist(alpha=.5, title="{} Travel Samples".format(name), stacked=True)
     ax.set_xlabel('Distance (m)')    
     df.plot.box()
@@ -59,6 +60,9 @@ def getWalkBoxPlot(SESSION):
         temp = SESSION.query(Match.date, Match.walk_distance).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
         temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
         df = pd.concat([df, temp_df])
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Distance Walked (m)')
     fname = os.path.realpath('walk.png')
@@ -71,6 +75,9 @@ def getDriveBoxPlot(SESSION) :
         temp = SESSION.query(Match.date, Match.ride_distance).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
         temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
         df = pd.concat([df, temp_df])
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Distance Driven (m)')
     
@@ -80,6 +87,9 @@ def getTravelBoxPlot(SESSION):
         temp = SESSION.query(Match.date, Match.distance_traveled).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
         temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
         df = pd.concat([df, temp_df])
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Total Distance Traveled (m)')
 
@@ -89,6 +99,9 @@ def getDamageStats(SESSION):
         temp = SESSION.query(Match.date, Match.damage).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
         temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
         df = pd.concat([df, temp_df])
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Damage')
     
@@ -98,6 +111,10 @@ def getHeadShotStats(SESSION):
         temp = SESSION.query(Match.date, Match.user_name, Match.headshot_kills).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
         temp_df = pd.DataFrame(temp,columns=['date','name','headshots']).set_index('date')
         df = pd.concat([df, temp_df])
+        
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     _max = df['headshots'].max()
     df.hist(by=df['name'], bins=range(1,_max+1), sharey=True)
 
@@ -107,6 +124,9 @@ def getKillsStats(SESSION):
         temp = SESSION.query(Match.date, Match.kills).filter(Match.user_name==u.name).order_by(Match.date.desc()).all()
         temp_df = pd.DataFrame(temp,columns=['date',u.name]).set_index('date')
         df = pd.concat([df, temp_df])
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Kills')
     
@@ -118,6 +138,10 @@ def getVehicleDestroys(SESSION):
             temp = SESSION.query(Match.date, Match.vehicle_destroys).filter(Match.user_name==u.name).filter(Match.rank==rank).order_by(Match.date.desc()).all()
             temp_df = pd.DataFrame(temp, columns=['date', rank]).set_index('date')
             df = pd.concat([df, temp_df])
+            
+        tz = timezone(timedelta(hours=-5), "GMT-5")
+        if "date" in df.columns:
+            df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
         ax = df.plot.bar()
         ax.set_title("{} Vehicle Destruction".format(u.name))
         ax.set_ylabel('Destroys')
@@ -136,6 +160,9 @@ def makeTable(SESSION, user, columns=("date", "name", "rank", "kills"), limit=10
         results.append(r)
     
     df = pd.DataFrame(results, columns=columns)
+    tz = timezone(timedelta(hours=-5), "GMT-5")
+    if "date" in df.columns:
+        df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     table = ff.create_table(df)
     file_path = os.path.realpath('table.png')
     py.image.save_as(table, filename=file_path)
@@ -193,5 +220,5 @@ def main(inargs=None):
         my_print("invalid command {}".format(command))
     
 if __name__ == "__main__":
-    main()
+    main(['makeTable'])
     
