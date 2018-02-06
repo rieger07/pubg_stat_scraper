@@ -53,6 +53,9 @@ def getDistances(SESSION, name):
     ax = df.plot.hist(alpha=.5, title="{} Travel Samples".format(name), stacked=True)
     ax.set_xlabel('Distance (m)')    
     df.plot.box()
+    fname = os.path.realpath('distances.png')
+    plt.savefig(fname)
+    my_print(fname)
 
 def getWalkBoxPlot(SESSION):
     df = pd.DataFrame()
@@ -80,6 +83,9 @@ def getDriveBoxPlot(SESSION) :
         df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Distance Driven (m)')
+    fname = os.path.realpath('drive.png')
+    plt.savefig(fname)
+    my_print(fname)
     
 def getTravelBoxPlot(SESSION):
     df = pd.DataFrame()
@@ -92,6 +98,9 @@ def getTravelBoxPlot(SESSION):
         df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Total Distance Traveled (m)')
+    fname = os.path.realpath('travel.png')
+    plt.savefig(fname)
+    my_print(fname)
 
 def getDamageStats(SESSION):
     df = pd.DataFrame()
@@ -104,6 +113,9 @@ def getDamageStats(SESSION):
         df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Damage')
+    fname = os.path.realpath('damage.png')
+    plt.savefig(fname)
+    my_print(fname)
     
 def getHeadShotStats(SESSION):
     df = pd.DataFrame()
@@ -117,6 +129,9 @@ def getHeadShotStats(SESSION):
         df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     _max = df['headshots'].max()
     df.hist(by=df['name'], bins=range(1,_max+1), sharey=True)
+    fname = os.path.realpath('headshots.png')
+    plt.savefig(fname)
+    my_print(fname)
 
 def getKillsStats(SESSION):
     df = pd.DataFrame()
@@ -129,6 +144,9 @@ def getKillsStats(SESSION):
         df["date"] = df["date"].apply(lambda x: x.replace(tzinfo=timezone.utc).astimezone(tz=tz))
     ax = df.plot.box()
     ax.set_ylabel('Kills')
+    fname = os.path.realpath('kills.png')
+    plt.savefig(fname)
+    my_print(fname)
     
 def getVehicleDestroys(SESSION):
     for u in SESSION.query(User).all():
@@ -145,6 +163,9 @@ def getVehicleDestroys(SESSION):
         ax = df.plot.bar()
         ax.set_title("{} Vehicle Destruction".format(u.name))
         ax.set_ylabel('Destroys')
+        fname = os.path.realpath('vehicles.png')
+        plt.savefig(fname)
+        my_print(fname)
 
 def extractStuff(SESSION):
     for u in SESSION.query(User).all():
@@ -200,22 +221,34 @@ def main(inargs=None):
             SESSION.rollback()
             my_print(e)
             my_print("Rolled the database back")
+
+    elif command=='getdistances':
+        getDistances(SESSION, args.user)
+
     elif command=='extractstuff':
         extractStuff(SESSION)
+
     elif command=='getWalkBoxPlot'.lower():
         getWalkBoxPlot(SESSION)
+
     elif command=='getDriveBoxPlot'.lower():
         getDriveBoxPlot(SESSION)
+
     elif command=='getTravelBoxPlot'.lower():
         getTravelBoxPlot(SESSION)
+
     elif command=='getDamageStats'.lower():
         getDamageStats(SESSION)
+
     elif command=='getHeadShotStats'.lower():
         getHeadShotStats(SESSION)
+
     elif command=='getKillsStats'.lower():
         getKillsStats(SESSION)
+
     elif command=='makeTable'.lower():
         makeTable(SESSION, args.user, args.columns, args.limit)
+
     else:
         my_print("invalid command {}".format(command))
     
