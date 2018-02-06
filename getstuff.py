@@ -220,5 +220,5 @@ def main(inargs=None):
         my_print("invalid command {}".format(command))
     
 if __name__ == "__main__":
-    main(['makeTable'])
+    main()
     
