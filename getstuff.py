@@ -190,10 +190,5 @@ def main(inargs=None):
         my_print("invalid command {}".format(command))
     
 if __name__ == "__main__":
-    #TODO CHANGE THIS BACK
-    #main()
-    p = os.path.realpath("pubg.sql")
+    main()
     
-    #p = r"C:/Users/srieger/Documents/GitHub/pubg_stat_scraper"
-    #my_print(p)
-    main(["getdata", "--path", p])
